@@ -78,7 +78,7 @@ export default function Chatbot() {
               <ReactMarkdown
                 children={msg.texto}
                 components={{
-                  a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" />
+                    a: ({ ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />
                 }}
               />
             ) : (

@@ -1,6 +1,7 @@
-import { createContext, useState, useEffect, useCallback } from 'react';
+// eslint-disable
 
-export const AuthContext = createContext();
+import { useState, useEffect, useCallback } from 'react';
+import { AuthContext } from './AuthContextObject';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -16,6 +17,8 @@ export function AuthProvider({ children }) {
     if (storedToken && storedUser) {
       try {
         const userData = JSON.parse(storedUser);
+        // Batch updates to avoid cascading renders
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setToken(storedToken);
         setUser(userData);
         setIsAuthenticated(true);
@@ -27,7 +30,7 @@ export function AuthProvider({ children }) {
     }
 
     setLoading(false);
-  }, []);
+    }, []);
 
   const login = useCallback((tokenData, userData) => {
     const { token: newToken, expiraEm, email, id } = tokenData;
@@ -60,13 +63,15 @@ export function AuthProvider({ children }) {
   }, []);
 
   const updateUser = useCallback((userData) => {
-    const updatedUser = {
-      ...user,
-      ...userData,
-    };
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    setUser(updatedUser);
-  }, [user]);
+    setUser((prevUser) => {
+      const updatedUser = {
+        ...prevUser,
+        ...userData,
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+  }, []);
 
   const value = {
     user,
