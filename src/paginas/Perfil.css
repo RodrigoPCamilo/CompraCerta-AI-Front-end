@@ -1,0 +1,138 @@
+
+.perfil-container {
+    height: 100vh;
+    width: 100%;
+    border-radius: 10px;
+    background-color: #587dce;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+    
+}
+
+.perfil-wrapper {
+    width: 100%;
+    max-width: 900px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.perfil-card {
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.perfil-card h2 {
+    margin-bottom: 16px;
+    font-size: 20px;
+    color: #2c3e50;
+}
+
+.perfil-card p {
+    margin: 6px 0;
+    font-size: 15px;
+    color: #444;
+}
+
+.historico-container {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.historico-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.historico-container::-webkit-scrollbar-thumb {
+    background: #b0c4de;
+    border-radius: 4px;
+}
+
+.historico-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.historico-item {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 12px;
+    margin-top: 12px;
+}
+
+.historico-item:first-child {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+}
+
+.historico-item p {
+    margin: 4px 0;
+    font-size: 14px;
+}
+
+.historico-item strong {
+    color: #2c3e50;
+}
+
+.historico-item small {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #777;
+}
+
+.perfil-loading,
+.perfil-erro {
+    font-size: 18px;
+    color: #333;
+}
+
+.historico-resposta {
+    margin-top: 10px;
+    background: #f7f9fc;
+    padding: 14px;
+    border-radius: 8px;
+    line-height: 1.6;
+    color: #2d3748;
+    font-size: 14px;
+}
+
+.historico-resposta h1,
+.historico-resposta h2,
+.historico-resposta h3 {
+    margin-top: 12px;
+    margin-bottom: 6px;
+    color: #1f3a5f;
+}
+
+.historico-resposta ul {
+    padding-left: 20px;
+    margin: 6px 0;
+}
+
+.historico-resposta code {
+    background: #edf2f7;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.historico-resposta pre {
+    background: #1e293b;
+    color: #e5e7eb;
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
+.historico-resposta strong {
+    color: #0f172a;
+}
+

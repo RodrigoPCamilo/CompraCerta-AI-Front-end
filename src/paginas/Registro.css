@@ -1,0 +1,162 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.registro-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(180deg, #c6d7ec, #eef7f6);
+  font-family: sans-serif; 
+}
+
+.registro-cartao {
+  width: 420px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.registro-titulo {
+  text-align: center;
+  color: #2563eb;
+  margin-bottom: 4px;
+}
+
+.registro-subtitulo {
+  text-align: center;
+  font-size: 24px;
+  color: #4c515c;
+  margin-bottom: 26px;
+}
+
+.registro-field {
+  margin-bottom: 14px;
+  width: 100%; 
+}
+
+.registro-field label {
+  font-size: 14px;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 6px;
+}
+
+
+.registro-field input, 
+.registro-field select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #dfe5ee;
+  outline: none;
+  font-size: 14px;
+}
+
+.registro-field input:focus {
+  border-color: #2563eb;
+}
+
+
+.campo-senha {
+  position: relative;
+  width: 100%;
+}
+
+.campo-senha input {
+  padding-right: 40px; 
+}
+
+.btn-olho {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+}
+
+.btn-olho:hover {
+  color: #2563eb;
+}
+
+
+.registro-botao {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #22c55e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.registro-botao:hover {
+  background-color: #16a34a;
+}
+
+.registro-link {
+  display: block;
+  margin-top: 16px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 14px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.registro-link:hover {
+  text-decoration: underline;
+}
+
+.erro-texto {
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+.toast {
+  position: fixed;  
+  top: 20px;         
+  left: 50%;         
+  transform: translateX(-50%); 
+  background-color: #22c55e; 
+  color: white;
+  padding: 14px 28px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  z-index: 9999;    
+  
+  animation: slideDown 0.4s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    top: -60px;   
+    opacity: 0;
+  }
+  to {
+    top: 20px;       
+    opacity: 1;
+  }
+}
+
+.toast.erro {
+  background-color: #dc2626;
+}

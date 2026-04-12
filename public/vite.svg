@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="brainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"></stop>
+      <stop offset="100%" stop-color="#22D3EE"></stop>
+    </linearGradient>
+  </defs>
+
+  <!-- Cérebro principal -->
+  <path d="
+    M30 35
+    C22 35 18 42 18 48
+    C18 55 22 60 28 62
+    C26 70 32 78 42 78
+    C47 78 50 75 50 72
+    C50 75 53 78 58 78
+    C68 78 74 70 72 62
+    C78 60 82 55 82 48
+    C82 42 78 35 70 35
+    C65 35 60 38 58 42
+    C56 38 52 35 50 35
+    C48 35 44 38 42 42
+    C40 38 35 35 30 35
+    Z" fill="url(#brainGrad)"></path>
+
+  <!-- Detalhes internos sutis -->
+  <path d="M38 48 C42 45 46 45 50 48" stroke="#0F172A" stroke-width="2" fill="none" opacity="0.4"></path>
+  <path d="M50 48 C54 45 58 45 62 48" stroke="#0F172A" stroke-width="2" fill="none" opacity="0.4"></path>
+  <path d="M42 58 C46 55 54 55 58 58" stroke="#0F172A" stroke-width="2" fill="none" opacity="0.4"></path>
+
+  <!-- Letra C dentro do cérebro -->
+  <text x="50" y="63" text-anchor="middle" font-size="34" font-family="Arial, Helvetica, sans-serif" font-weight="800" fill="#0F172A">C</text>
+</svg>
