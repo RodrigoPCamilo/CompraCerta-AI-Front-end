@@ -19,20 +19,19 @@ export default function Cadastro() {
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    carregarCategorias();
-  }, []);
+  useEffect(() => { carregarCategorias(); }, []);
 
   const carregarCategorias = async () => {
+    setErro('');
     try {
       const data = await categoriaService.disponiveis();
       setCategorias(data);
-      if (data.length > 0) {
-        setCategoriaId(data[0].id);
-      }
+      if (data.length > 0) setCategoriaId(data[0].id);
     } catch (err) {
       console.error('Erro ao carregar categorias:', err);
-      setErro('Erro ao carregar categorias. Tente novamente.');
+      setCategorias([]);
+      setCategoriaId('');
+      setErro(err.response?.data?.mensagem || 'Erro ao carregar categorias. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -57,120 +56,99 @@ export default function Cadastro() {
         return;
       }
 
-      await usuarioService.criar({
-        nome,
-        email,
-        senha,
-        categoriaIds: [parseInt(categoriaId)],
-      });
+      await usuarioService.criar({ nome, email, senha, categoriaIds: [parseInt(categoriaId, 10)] });
 
-      setSucesso('Cadastro realizado! Fazendo login...');
-      setTimeout(() => {
-        navigate('/login');
-      }, 1500);
+      setSucesso('Cadastro realizado! Redirecionando para o login...');
+      setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
       console.error('Erro no cadastro:', err);
-
-      if (err.response?.status === 400) {
-        setErro(err.response?.data?.mensagem || 'Erro ao cadastrar. Tente novamente.');
-      } else {
-        setErro('Erro ao cadastrar usuário. Tente novamente.');
-      }
+      setErro(err.response?.data?.mensagem || 'Erro ao cadastrar usuário. Tente novamente.');
     } finally {
       setEnviando(false);
     }
   };
 
-  if (loading) {
-    return <Loading />;
-  }
+  if (loading) return <Loading />;
 
   return (
-    <div className="cadastro-container">
-      <div className="cadastro-card">
-        <h1 className="cadastro-title">CompraCertaAI</h1>
-        <p className="cadastro-subtitle">Crie sua conta</p>
-
-        {erro && <div className="error-message">{erro}</div>}
-        {sucesso && <div className="success-message">{sucesso}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="nome">Nome completo</label>
-            <input
-              id="nome"
-              type="text"
-              placeholder="Seu nome completo"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              disabled={enviando}
-            />
+    <div className="cadastro-page">
+      <div className="cadastro-container">
+        <div className="cadastro-header">
+          <div className="cadastro-logo">
+            <div className="cadastro-logo-icon">🛍️</div>
+            <p className="cadastro-logo-text">CompraCertaAI</p>
           </div>
+          <h1 className="cadastro-title">Crie sua conta</h1>
+          <p className="cadastro-subtitle">Comece a economizar com IA hoje mesmo</p>
+        </div>
 
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={enviando}
-            />
-          </div>
+        <div className="cadastro-card">
+          {erro && <div className="alert-error">{erro}</div>}
+          {sucesso && <div className="alert-success">{sucesso}</div>}
 
-          <div className="form-group">
-            <label htmlFor="senha">Senha</label>
-            <div className="password-wrapper">
-              <input
-                id="senha"
-                type={mostrarSenha ? 'text' : 'password'}
-                placeholder="Mínimo 6 caracteres"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                disabled={enviando}
-              />
-              <button
-                type="button"
-                className="toggle-password"
-                onClick={() => setMostrarSenha(!mostrarSenha)}
-                disabled={enviando}
-              >
-                {mostrarSenha ? '👁️' : '👁️‍🗨️'}
-              </button>
+          {categorias.length === 0 && (
+            <button type="button" className="reload-btn" onClick={carregarCategorias}>
+              ↻ Recarregar categorias
+            </button>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div className="form-field">
+              <label className="form-label" htmlFor="nome">Nome completo</label>
+              <input id="nome" type="text" placeholder="Seu nome completo" value={nome} onChange={(e) => setNome(e.target.value)} disabled={enviando} />
             </div>
-          </div>
 
-          <div className="form-group">
-            <label htmlFor="categoria">Categoria favorita</label>
-            <select
-              id="categoria"
-              value={categoriaId}
-              onChange={(e) => setCategoriaId(e.target.value)}
-              disabled={enviando}
-            >
-              {categorias.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.nome}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="form-field">
+              <label className="form-label" htmlFor="email">Email</label>
+              <input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={enviando} />
+            </div>
 
-          <button
-            type="submit"
-            className="cadastro-button"
-            disabled={enviando}
-          >
-            {enviando ? 'Cadastrando...' : 'Cadastrar'}
-          </button>
-        </form>
+            <div className="form-field">
+              <label className="form-label" htmlFor="senha">Senha</label>
+              <div className="form-input-wrap">
+                <input
+                  id="senha"
+                  type={mostrarSenha ? 'text' : 'password'}
+                  placeholder="Mínimo 6 caracteres"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  disabled={enviando}
+                />
+                <button type="button" className="toggle-password" onClick={() => setMostrarSenha(!mostrarSenha)}>
+                  {mostrarSenha ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
+            </div>
 
-        <p className="login-link">
-          Já tem conta?{' '}
-          <Link to="/login" className="link">
-            Entrar
-          </Link>
+            <div className="form-field">
+              <label className="form-label">Categoria favorita</label>
+              {categorias.length > 0 ? (
+                <div className="category-grid">
+                  {categorias.map((cat) => (
+                    <div
+                      key={cat.id}
+                      className={`category-option${String(categoriaId) === String(cat.id) ? ' selected' : ''}`}
+                      onClick={() => !enviando && setCategoriaId(cat.id)}
+                    >
+                      <span>{cat.nome}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <select id="categoria" value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} disabled>
+                  <option value="">Nenhuma categoria disponível</option>
+                </select>
+              )}
+            </div>
+
+            <button type="submit" className="btn-primary" disabled={enviando} style={{ marginTop: '8px' }}>
+              {enviando ? 'Cadastrando...' : 'Criar conta'}
+            </button>
+          </form>
+        </div>
+
+        <p className="cadastro-footer">
+          Já tem conta? <Link to="/login">Entrar</Link>
         </p>
       </div>
     </div>

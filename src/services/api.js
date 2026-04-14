@@ -26,7 +26,9 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
+    const hasSessionToken = Boolean(localStorage.getItem('token'));
+
+    if (error.response?.status === 401 && hasSessionToken) {
       // Token expirado ou inválido
       localStorage.removeItem('token');
       localStorage.removeItem('expiraEm');

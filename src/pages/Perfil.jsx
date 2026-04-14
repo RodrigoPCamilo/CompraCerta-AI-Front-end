@@ -9,12 +9,9 @@ export default function Perfil() {
   const [usuario, setUsuario] = useState(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
-
   const navigate = useNavigate();
 
-  useEffect(() => {
-    carregarPerfil();
-  }, []);
+  useEffect(() => { carregarPerfil(); }, []);
 
   const carregarPerfil = async () => {
     try {
@@ -29,68 +26,73 @@ export default function Perfil() {
     }
   };
 
-  if (loading) {
-    return (
-      <>
-        <Header />
-        <Loading />
-      </>
-    );
-  }
+  const initials = usuario?.nome
+    ? usuario.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
+    : '?';
 
-  if (erro) {
-    return (
-      <>
-        <Header />
-        <div className="perfil-container">
-          <div className="error-message">{erro}</div>
-        </div>
-      </>
-    );
-  }
+  if (loading) return <><Header /><Loading message="Carregando seu perfil..." /></>;
 
   return (
     <>
       <Header />
-      <div className="perfil-container">
-        <div className="perfil-card">
-          <h1 className="perfil-title">Meu Perfil</h1>
+      <div className="perfil-page">
+        <div className="perfil-inner">
+          <div className="perfil-page-header">
+            <p className="perfil-page-label">Conta</p>
+            <h1 className="perfil-page-title">Meu Perfil</h1>
+          </div>
+
+          {erro && <div className="alert-error">{erro}</div>}
 
           {usuario && (
-            <div className="profile-info">
-              <div className="info-group">
-                <label className="info-label">Nome</label>
-                <p className="info-value">{usuario.nome}</p>
+            <>
+              {/* Avatar card */}
+              <div className="perfil-avatar-card">
+                <div className="perfil-avatar-circle">{initials}</div>
+                <div className="perfil-avatar-info">
+                  <h2>{usuario.nome}</h2>
+                  <p className="perfil-avatar-email">{usuario.email}</p>
+                </div>
               </div>
 
-              <div className="info-group">
-                <label className="info-label">Email</label>
-                <p className="info-value">{usuario.email}</p>
+              {/* Info cards */}
+              <div className="perfil-cards">
+                <div className="perfil-info-card">
+                  <p className="perfil-info-label">Nome completo</p>
+                  <p className="perfil-info-value">{usuario.nome}</p>
+                </div>
+                <div className="perfil-info-card">
+                  <p className="perfil-info-label">Email</p>
+                  <p className="perfil-info-value">{usuario.email}</p>
+                </div>
               </div>
 
-              <div className="info-group">
-                <label className="info-label">Categorias Favoritas</label>
+              {/* Categories */}
+              <div className="perfil-categories-card">
+                <p className="perfil-categories-title">Categorias Favoritas</p>
                 {usuario.categorias && usuario.categorias.length > 0 ? (
-                  <div className="categories-list">
+                  <div className="categories-tags">
                     {usuario.categorias.map((cat) => (
                       <span key={cat.id} className="category-tag">
-                        {cat.nome}
+                        🏷️ {cat.nome}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <p className="info-value">Nenhuma categoria selecionada</p>
+                  <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.9rem' }}>
+                    Nenhuma categoria selecionada
+                  </p>
                 )}
               </div>
-            </div>
-          )}
 
-          <button
-            onClick={() => navigate('/atualizar-perfil')}
-            className="update-perfil-btn"
-          >
-            Atualizar Perfil
-          </button>
+              {/* Actions */}
+              <div className="perfil-actions">
+                <button className="btn-update" onClick={() => navigate('/atualizar-perfil')}>
+                  ✏️ Atualizar Perfil
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>

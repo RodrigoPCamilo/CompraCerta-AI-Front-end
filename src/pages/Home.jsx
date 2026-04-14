@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { ProductCard } from '../components/ProductCard';
 import { Loading } from '../components/Loading';
@@ -6,22 +7,34 @@ import { EmptyState } from '../components/EmptyState';
 import { produtoService } from '../services/produtoService';
 import './Home.css';
 
+const STORES = ['Amazon', 'Mercado Livre', 'Shopee', 'Magalu', 'Americanas'];
+
 export default function Home() {
   const [produtos, setProdutos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
   const [buscando, setBuscando] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchAtivo, setSearchAtivo] = useState('');
+
+  const location = useLocation();
 
   useEffect(() => {
-    carregarRecomendacoes();
+    const params = new URLSearchParams(location.search);
+    const q = params.get('q');
+    if (q) {
+      setSearchQuery(q);
+      executarBusca(q);
+    } else {
+      carregarRecomendacoes();
+    }
   }, []);
 
   const carregarRecomendacoes = async () => {
     try {
       setLoading(true);
       setErro('');
-      const data = await produtoService.recommendations();
+      const data = await produtoService.recommendations(10);
       setProdutos(data);
     } catch (err) {
       console.error('Erro ao carregar recomendações:', err);
@@ -31,29 +44,36 @@ export default function Home() {
     }
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-
-    if (!searchQuery.trim()) {
-      carregarRecomendacoes();
-      return;
-    }
-
+  const executarBusca = async (query) => {
     try {
       setBuscando(true);
+      setLoading(true);
       setErro('');
-      const data = await produtoService.search(searchQuery);
+      const data = await produtoService.search(query);
       setProdutos(data);
+      setSearchAtivo(query);
     } catch (err) {
       console.error('Erro na busca:', err);
       setErro('Erro ao buscar produtos. Tente novamente.');
     } finally {
       setBuscando(false);
+      setLoading(false);
     }
   };
 
-  const handleLimparBusca = () => {
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) {
+      setSearchAtivo('');
+      carregarRecomendacoes();
+      return;
+    }
+    executarBusca(searchQuery);
+  };
+
+  const handleLimpar = () => {
     setSearchQuery('');
+    setSearchAtivo('');
     carregarRecomendacoes();
   };
 
@@ -61,7 +81,7 @@ export default function Home() {
     return (
       <>
         <Header />
-        <Loading />
+        <Loading message={buscando ? 'Buscando ofertas...' : 'Carregando recomendações...'} />
       </>
     );
   }
@@ -69,52 +89,72 @@ export default function Home() {
   return (
     <>
       <Header />
-      <div className="home-container">
-        <div className="search-section">
-          <form onSubmit={handleSearch} className="search-form">
-            <input
-              type="text"
-              placeholder="Buscar produtos..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              disabled={buscando}
-              className="search-input"
-            />
-            <button
-              type="submit"
-              disabled={buscando}
-              className="search-button"
-            >
-              {buscando ? 'Buscando...' : 'Buscar'}
-            </button>
-          </form>
+      <div className="home-page">
+        {/* Hero Search */}
+        <section className="home-hero">
+          <div className="home-hero-inner">
+            <p className="home-hero-title">Busca inteligente com IA</p>
+            <h1 className="home-hero-heading">
+              Encontre as melhores <span>ofertas</span>
+            </h1>
 
-          {searchQuery && (
-            <button onClick={handleLimparBusca} className="clear-search-btn">
-              Limpar busca
-            </button>
-          )}
-        </div>
+            <form className="search-bar" onSubmit={handleSearch}>
+              <div className="search-input-wrap">
+                <span className="search-icon">🔍</span>
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Ex: notebook, tênis, fone de ouvido..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  disabled={buscando}
+                />
+              </div>
+              <button type="submit" className="search-btn" disabled={buscando}>
+                {buscando ? 'Buscando...' : 'Buscar Ofertas'}
+              </button>
+            </form>
 
-        {erro && <div className="error-message">{erro}</div>}
+            {searchAtivo && (
+              <button className="clear-search" onClick={handleLimpar}>
+                ✕ Limpar busca "{searchAtivo}"
+              </button>
+            )}
 
-        {produtos.length === 0 ? (
-          <EmptyState message="Nenhum produto encontrado" />
-        ) : (
-          <div className="products-grid">
-            {produtos.slice(0, 10).map((produto) => (
-              <ProductCard
-                key={produto.id}
-                imagemUrl={produto.imagemUrl}
-                nomeProduto={produto.nomeProduto}
-                descricao={produto.descricao}
-                loja={produto.loja}
-                categoriaNome={produto.categoriaNome}
-                linkProduto={produto.linkProduto}
-              />
-            ))}
+            <div className="store-filters">
+              {STORES.map((store) => (
+                <span key={store} className="store-badge">{store}</span>
+              ))}
+            </div>
           </div>
-        )}
+        </section>
+
+        {/* Results */}
+        <section className="home-results">
+          {erro && <div className="error-banner">{erro}</div>}
+
+          <div className="results-header">
+            <p className="results-title">
+              {searchAtivo ? `Resultados para "${searchAtivo}"` : 'Recomendados para você'}
+            </p>
+            {produtos.length > 0 && (
+              <span className="results-count">{produtos.length} produtos</span>
+            )}
+          </div>
+
+          {produtos.length === 0 ? (
+            <EmptyState message="Nenhum produto encontrado" icon="🛍️" />
+          ) : (
+            <div className="products-grid">
+              {produtos.slice(0, 10).map((produto) => (
+                <ProductCard
+                  key={`${produto.nomeProduto}-${produto.loja}-${produto.precoOferta}`}
+                  produto={produto}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </>
   );

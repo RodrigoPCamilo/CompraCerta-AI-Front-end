@@ -10,23 +10,15 @@ export default function Historico() {
   const [historico, setHistorico] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
-
   const navigate = useNavigate();
 
-  useEffect(() => {
-    carregarHistorico();
-  }, []);
+  useEffect(() => { carregarHistorico(); }, []);
 
   const carregarHistorico = async () => {
     try {
       setLoading(true);
       const data = await historicoService.listar();
-
-      // Ordena por data (mais recente primeiro)
-      const ordenado = data.sort(
-        (a, b) => new Date(b.searchDate) - new Date(a.searchDate)
-      );
-
+      const ordenado = data.sort((a, b) => new Date(b.searchDate) - new Date(a.searchDate));
       setHistorico(ordenado);
     } catch (err) {
       console.error('Erro ao carregar histórico:', err);
@@ -37,68 +29,77 @@ export default function Historico() {
   };
 
   const formatarData = (dataString) => {
-    const data = new Date(dataString);
     return new Intl.DateTimeFormat('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }).format(data);
+    }).format(new Date(dataString));
   };
 
-  if (loading) {
-    return (
-      <>
-        <Header />
-        <Loading />
-      </>
-    );
-  }
+  const handleRebuscar = (query) => {
+    navigate(`/home?q=${encodeURIComponent(query)}`);
+  };
+
+  if (loading) return <><Header /><Loading message="Carregando histórico..." /></>;
 
   return (
     <>
       <Header />
-      <div className="historico-container">
-        <div className="historico-header">
-          <h1 className="historico-title">Histórico de Pesquisas</h1>
-        </div>
-
-        {erro && <div className="error-message">{erro}</div>}
-
-        {historico.length === 0 ? (
-          <EmptyState message="Você ainda não fez nenhuma pesquisa." />
-        ) : (
-          <div className="historico-list">
-            {historico.map((item) => (
-              <div key={item.id} className="historico-item">
-                <div className="historico-content">
-                  <p className="historico-query">{item.query}</p>
-                  <span className="historico-date">
-                    {formatarData(item.searchDate)}
-                  </span>
-                </div>
-                <button
-                  className="historico-action"
-                  onClick={() => {
-                    navigate('/home');
-                    // Aqui poderia fazer uma busca automática no Home se quisesse
-                  }}
-                >
-                  Buscar novamente
-                </button>
-              </div>
-            ))}
+      <div className="historico-page">
+        <div className="historico-inner">
+          <div className="historico-page-header">
+            <div>
+              <p className="historico-page-label">Atividade</p>
+              <h1 className="historico-page-title">Histórico de Busca</h1>
+            </div>
+            <button className="historico-back-btn" onClick={() => navigate('/home')}>
+              ← Voltar para Home
+            </button>
           </div>
-        )}
 
-        <div className="historico-footer">
-          <button
-            onClick={() => navigate('/home')}
-            className="voltar-home-btn"
-          >
-            ← Voltar para Home
-          </button>
+          {erro && <div className="alert-error">{erro}</div>}
+
+          {historico.length > 0 && (
+            <div className="historico-stats">
+              <div className="stat-chip">
+                <span className="stat-value">{historico.length}</span>
+                <span className="stat-label">Pesquisas realizadas</span>
+              </div>
+              <div className="stat-chip">
+                <span className="stat-value">
+                  {historico.length > 0 ? formatarData(historico[historico.length - 1].searchDate).split(' ')[0] : '—'}
+                </span>
+                <span className="stat-label">Primeira pesquisa</span>
+              </div>
+            </div>
+          )}
+
+          {historico.length === 0 ? (
+            <EmptyState
+              message="Você ainda não fez nenhuma pesquisa"
+              icon="🔍"
+            />
+          ) : (
+            <div className="historico-list">
+              {historico.map((item, idx) => (
+                <div key={item.id || idx} className="historico-item">
+                  <div className="historico-item-icon">🔍</div>
+                  <div className="historico-item-content">
+                    <p className="historico-query">{item.query}</p>
+                    <span className="historico-date">{formatarData(item.searchDate)}</span>
+                  </div>
+                  <button
+                    className="historico-rebuscar"
+                    onClick={() => handleRebuscar(item.query)}
+                  >
+                    ↺ Buscar novamente
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>

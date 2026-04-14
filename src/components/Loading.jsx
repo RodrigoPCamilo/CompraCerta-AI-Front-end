@@ -1,22 +1,33 @@
-export function Loading() {
+export function Loading({ message = 'Carregando...' }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px' }}>
-      <div style={{ textAlign: 'center' }}>
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '80px 20px',
+      flexDirection: 'column',
+      gap: '16px',
+    }}>
+      <div style={{ position: 'relative', width: '48px', height: '48px' }}>
         <div style={{
-          width: '40px',
-          height: '40px',
-          border: '4px solid #e5e7eb',
-          borderTop: '4px solid #2563eb',
+          width: '48px',
+          height: '48px',
+          border: '3px solid rgba(249,115,22,0.15)',
+          borderTop: '3px solid #f97316',
           borderRadius: '50%',
-          margin: '0 auto 16px',
-          animation: 'spin 1s linear infinite',
+          animation: 'spin 0.8s linear infinite',
         }} />
-        <p style={{ color: '#6b7280', margin: 0 }}>Carregando...</p>
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%,-50%)',
+          fontSize: '18px',
+        }}>🛍️</div>
       </div>
+      <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '0.9rem' }}>{message}</p>
       <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
