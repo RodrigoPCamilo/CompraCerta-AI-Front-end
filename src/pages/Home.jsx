@@ -7,7 +7,7 @@ import { EmptyState } from '../components/EmptyState';
 import { produtoService } from '../services/produtoService';
 import './Home.css';
 
-const STORES = ['Amazon', 'Mercado Livre', 'Shopee', 'Magalu', 'Americanas'];
+const STORES = ['Amazon', 'Mercado Livre', 'Shopee', 'Magalu', 'Americanas','Kabum'];
 
 export default function Home() {
   const [produtos, setProdutos] = useState([]);

@@ -52,7 +52,7 @@
 
 .cadastro-logo-text {
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.05rem;
   font-weight: 800;
   background: var(--gradient-brand);
   -webkit-background-clip: text;
@@ -62,7 +62,7 @@
 }
 
 .cadastro-title {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 800;
   margin-bottom: 8px;
 }
@@ -89,7 +89,7 @@
   font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: 8px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 

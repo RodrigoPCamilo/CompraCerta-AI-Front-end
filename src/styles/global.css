@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
+/* Fonte sem opsz (optical size) — esse eixo causa distorção visual em alguns tamanhos */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
   --brand-orange: #f97316;
@@ -28,8 +29,10 @@
   --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
   --shadow-raised: 0 8px 40px rgba(0, 0, 0, 0.5);
 
-  --font-display: 'Syne', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  /* Plus Jakarta Sans = moderna, bem proporcionada, sem distorção */
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  /* Inter = corpo de texto referência do mercado, perfeitamente proporcional */
+  --font-body: 'Inter', sans-serif;
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -41,41 +44,86 @@
   --transition-normal: 250ms ease;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* Reset completo — garante que index.css não interfira */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-html, body { width: 100%; min-height: 100%; }
+html, body {
+  width: 100%;
+  min-height: 100%;
+}
 
 body {
   font-family: var(--font-body);
   font-size: 15px;
+  font-weight: 400;
   line-height: 1.6;
   color: var(--text-primary);
   background-color: var(--bg-900);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Desativa síntese de fonte que pode distorcer letras */
+  font-synthesis: none;
+  /* Força o texto a não escalar de forma estranha */
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 
-#root { display: flex; flex-direction: column; min-height: 100vh; }
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
 
+/* Títulos — Plus Jakarta Sans com tamanhos normais e letter-spacing neutro */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.25;
+  letter-spacing: -0.01em;  /* leve, apenas para naturalidade */
   color: var(--text-primary);
+  margin: 0;
 }
 
-h1 { font-size: 2.25rem; }
-h2 { font-size: 1.875rem; }
-h3 { font-size: 1.5rem; }
-h4 { font-size: 1.25rem; }
+h1 { font-size: 1.875rem; }  /* 30px — era 2.25rem, muito grande causava distorção */
+h2 { font-size: 1.5rem; }    /* 24px */
+h3 { font-size: 1.25rem; }   /* 20px */
+h4 { font-size: 1.125rem; }  /* 18px */
+h5 { font-size: 1rem; }
+h6 { font-size: 0.9rem; }
 
-p { margin-bottom: 12px; color: var(--text-secondary); }
+p {
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
 p:last-child { margin-bottom: 0; }
 
-a { color: var(--brand-orange); text-decoration: none; transition: color var(--transition-fast); }
+a {
+  color: var(--brand-orange);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
 a:hover { color: var(--brand-orange-light); }
 
-button, input, select, textarea { font-family: var(--font-body); font-size: 15px; }
-button { cursor: pointer; transition: all var(--transition-normal); }
+/* Inputs e botões — herdam Inter sem distorção */
+button, input, select, textarea {
+  font-family: var(--font-body);
+  font-size: 0.9375rem; /* 15px explícito */
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+button {
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  border: none;
+  background: none;
+}
 button:disabled { cursor: not-allowed; opacity: 0.5; }
 
 input, select, textarea {
@@ -99,13 +147,16 @@ input:focus, select:focus, textarea:focus {
 input:disabled, select:disabled { opacity: 0.5; cursor: not-allowed; }
 select option { background: var(--bg-700); color: var(--text-primary); }
 
+/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-800); }
 ::-webkit-scrollbar-thumb { background: var(--bg-500); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--bg-400); }
 
+/* Container */
 .container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
 
+/* Botão primário */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -113,16 +164,17 @@ select option { background: var(--bg-700); color: var(--text-primary); }
   gap: 8px;
   background: var(--gradient-brand);
   color: #fff;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: 0.02em;
+  font-size: 0.9375rem;
+  letter-spacing: 0;
   padding: 12px 24px;
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
   box-shadow: 0 2px 12px rgba(249, 115, 22, 0.3);
   width: 100%;
+  transition: all var(--transition-normal);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -137,10 +189,14 @@ select option { background: var(--bg-700); color: var(--text-primary); }
   gap: 8px;
   background: transparent;
   color: var(--text-secondary);
+  font-family: var(--font-body);
   font-weight: 500;
+  font-size: 0.9375rem;
+  letter-spacing: 0;
   padding: 12px 20px;
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
+  transition: all var(--transition-normal);
 }
 
 .btn-ghost:hover:not(:disabled) {
@@ -155,7 +211,8 @@ select option { background: var(--bg-700); color: var(--text-primary); }
   color: #fca5a5;
   padding: 12px 16px;
   border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
   margin-bottom: 20px;
 }
 
@@ -165,13 +222,15 @@ select option { background: var(--bg-700); color: var(--text-primary); }
   color: #86efac;
   padding: 12px 16px;
   border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
   margin-bottom: 20px;
 }
 
 @media (max-width: 768px) {
-  h1 { font-size: 1.75rem; }
-  h2 { font-size: 1.5rem; }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.125rem; }
   body { font-size: 14px; }
   .container { padding: 0 16px; }
 }

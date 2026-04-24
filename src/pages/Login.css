@@ -70,7 +70,7 @@
 
 .login-aside-brand {
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-size: 1.15rem;
   font-weight: 800;
   background: var(--gradient-brand);
   -webkit-background-clip: text;
@@ -81,10 +81,10 @@
 
 .login-aside-headline {
   font-family: var(--font-display);
-  font-size: 2.8rem;
+  font-size: 2rem;
   font-weight: 800;
   line-height: 1.1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
   margin-bottom: 20px;
 }
@@ -144,7 +144,7 @@
 
 .login-card-title {
   font-family: var(--font-display);
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 800;
   margin-bottom: 8px;
 }

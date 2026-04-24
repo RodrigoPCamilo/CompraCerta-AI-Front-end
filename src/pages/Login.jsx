@@ -63,7 +63,7 @@ export default function Login() {
           </p>
 
           <div className="login-features">
-            {['Amazon, Mercado Livre, Shopee e mais', 'Recomendações personalizadas por categoria', 'Histórico completo de pesquisas'].map((f) => (
+            {['Amazon, Mercado Livre, Shopee e mais', 'Recomendações personalizadas por categoria do usuário', 'Histórico completo de pesquisas'].map((f) => (
               <div className="login-feature" key={f}>
                 <div className="login-feature-dot" />
                 <span>{f}</span>
