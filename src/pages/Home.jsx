@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Header } from '../components/Header';
 import { ProductCard } from '../components/ProductCard';
@@ -17,8 +17,12 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchAtivo, setSearchAtivo] = useState('');
 
+  // Chave de refresh — ao incrementar força novas recomendações
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const location = useLocation();
 
+  // Roda ao montar E sempre que refreshKey mudar (clique em Home ou botão atualizar)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const q = params.get('q');
@@ -26,15 +30,38 @@ export default function Home() {
       setSearchQuery(q);
       executarBusca(q);
     } else {
+      setSearchAtivo('');
+      setSearchQuery('');
       carregarRecomendacoes();
     }
+  }, [refreshKey]);
+
+  // Detecta clique no link Home (mesmo estando na home) para forçar novos produtos
+  useEffect(() => {
+    const handleHomeClick = () => {
+      if (window.location.pathname === '/home') {
+        setRefreshKey(k => k + 1);
+      }
+    };
+
+    // Força reload quando categoria favorita é atualizada no perfil
+    const handleCategoriaAtualizada = () => {
+      setRefreshKey(k => k + 1);
+    };
+
+    window.addEventListener('home-refresh', handleHomeClick);
+    window.addEventListener('categoria-atualizada', handleCategoriaAtualizada);
+    return () => {
+      window.removeEventListener('home-refresh', handleHomeClick);
+      window.removeEventListener('categoria-atualizada', handleCategoriaAtualizada);
+    };
   }, []);
 
   const carregarRecomendacoes = async () => {
     try {
       setLoading(true);
       setErro('');
-      const data = await produtoService.recommendations(10);
+      const data = await produtoService.recommendations();
       setProdutos(data);
     } catch (err) {
       console.error('Erro ao carregar recomendações:', err);
@@ -74,6 +101,12 @@ export default function Home() {
   const handleLimpar = () => {
     setSearchQuery('');
     setSearchAtivo('');
+    carregarRecomendacoes();
+  };
+
+  const handleAtualizar = () => {
+    setSearchAtivo('');
+    setSearchQuery('');
     carregarRecomendacoes();
   };
 
@@ -137,16 +170,28 @@ export default function Home() {
             <p className="results-title">
               {searchAtivo ? `Resultados para "${searchAtivo}"` : 'Recomendados para você'}
             </p>
-            {produtos.length > 0 && (
-              <span className="results-count">{produtos.length} produtos</span>
-            )}
+            <div className="results-header-actions">
+              {produtos.length > 0 && (
+                <span className="results-count">{produtos.length} ofertas</span>
+              )}
+              {!searchAtivo && (
+                <button
+                  className="btn-refresh"
+                  onClick={handleAtualizar}
+                  disabled={loading}
+                  title="Buscar novas ofertas"
+                >
+                  ↺ Atualizar
+                </button>
+              )}
+            </div>
           </div>
 
           {produtos.length === 0 ? (
             <EmptyState message="Nenhum produto encontrado" icon="🛍️" />
           ) : (
             <div className="products-grid">
-              {produtos.slice(0, 10).map((produto) => (
+              {produtos.slice(0, 12).map((produto) => (
                 <ProductCard
                   key={`${produto.nomeProduto}-${produto.loja}-${produto.precoOferta}`}
                   produto={produto}

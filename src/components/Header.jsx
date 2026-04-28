@@ -21,13 +21,13 @@ export function Header() {
   return (
     <header className="header">
       <div className="header-container">
-        <a href="/home" className="header-brand">
+        <a href="/home" className="header-brand" onClick={() => window.dispatchEvent(new Event('home-refresh'))}>
           <div className="header-brand-icon">🛍️</div>
           <h1>CompraCertaAI</h1>
         </a>
 
         <nav className="header-nav">
-          <a href="/home" className={`nav-link${isActive('/home') ? ' active' : ''}`}>Home</a>
+          <a href="/home" className={`nav-link${isActive('/home') ? ' active' : ''}`} onClick={() => window.dispatchEvent(new Event('home-refresh'))}>Home</a>
           <a href="/perfil" className={`nav-link${isActive('/perfil') ? ' active' : ''}`}>Perfil do Usuário</a>
           <a href="/historico" className={`nav-link${isActive('/historico') ? ' active' : ''}`}>Histórico de Busca</a>
         </nav>

@@ -191,3 +191,34 @@
 @media (max-width: 480px) {
   .products-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
 }
+/* ── Refresh / Atualizar ─────────────────────────────────────────────────── */
+.results-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.btn-refresh:hover {
+  border-color: var(--brand-amber);
+  color: var(--brand-amber);
+}
+
+.btn-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

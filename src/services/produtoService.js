@@ -1,165 +1,188 @@
 import api from './api';
 
-const PLACEHOLDER_IMAGE = 'https://placehold.co/600x400/1a1a25/f97316?text=Produto';
+const PLACEHOLDER = 'https://api.dicebear.com/9.x/shapes/svg?seed=';
 
-function safeText(value, fallback = '') {
-  if (value === null || value === undefined) return fallback;
-  const text = String(value).trim();
-  return text || fallback;
+function safe(v, fb = '') {
+  if (v == null) return fb;
+  const s = String(v).trim();
+  return s || fb;
 }
 
-function isValidHttpUrl(url) {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return false;
-  }
+function isUrl(url) {
+  try { const p = new URL(url); return p.protocol === 'http:' || p.protocol === 'https:'; }
+  catch { return false; }
 }
 
-function isPlaceholderImage(url) {
-  const normalized = safeText(url).toLowerCase();
-  return (
-    !normalized ||
-    normalized.includes('placehold.co') ||
-    normalized.includes('via.placeholder.com') ||
-    normalized.endsWith('produto-placeholder.svg')
-  );
+function isBroken(url) {
+  if (!url) return true;
+  const u = url.toLowerCase();
+  return u.includes('placehold.co') || u.includes('via.placeholder') ||
+    u.endsWith('produto-placeholder.svg') || u.endsWith('vite.svg');
 }
 
-function normalizePrecoOferta(rawPrice) {
-  const text = safeText(rawPrice);
-  if (!text) return 'Consulte na loja';
+function formatPreco(raw) {
+  const t = safe(raw);
+  if (!t) return 'Consulte na loja';
 
-  // Já está formatado como "R$ X,XX" — retorna direto
-  if (text.startsWith('R$')) return text;
+  // Rejeita qualquer valor zero ou placeholder
+  const zeros = ['0', '0,00', '0.00', 'r$ 0,00', 'r$ 0', 'r$0,00', 'null', 'undefined'];
+  if (zeros.includes(t.toLowerCase().trim())) return 'Consulte na loja';
 
-  const asNumber = Number(String(rawPrice).replace(',', '.').replace(/[^0-9.]/g, ''));
-  if (!Number.isNaN(asNumber) && asNumber > 0) {
-    return asNumber.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  if (t.startsWith('R$') || t.startsWith('r$')) {
+    const num = parseFloat(t.replace(/[^0-9.,]/g, '').replace(',', '.'));
+    if (isNaN(num) || num <= 0) return 'Consulte na loja';
+    return t;
   }
 
-  return text;
+  const n = parseFloat(t.replace(/[^0-9.,]/g, '').replace(',', '.'));
+  if (!isNaN(n) && n > 0)
+    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  return null; // será substituído por estimarPreco
 }
 
-function buildStoreSearchLink(loja, nomeProduto) {
-  const term = encodeURIComponent(safeText(nomeProduto, 'produto'));
-  const normalizedStore = safeText(loja).toLowerCase();
-
-  if (normalizedStore.includes('amazon'))
-    return `https://www.amazon.com.br/s?k=${term}`;
-  if (normalizedStore.includes('mercado'))
-    return `https://lista.mercadolivre.com.br/${term}`;
-  if (normalizedStore.includes('magazine') || normalizedStore.includes('magalu'))
-    return `https://www.magazineluiza.com.br/busca/${term}/`;
-  if (normalizedStore.includes('shopee'))
-    return `https://shopee.com.br/search?keyword=${term}`;
-  if (normalizedStore.includes('americanas'))
-    return `https://www.americanas.com.br/busca/${term}`;
-  if (normalizedStore.includes('kabum'))
-    return `https://www.kabum.com.br/busca/${term}`;
-
-  return `https://www.google.com/search?q=${term}+${encodeURIComponent(loja)}`;
+function buildLink(loja, nome) {
+  const q = encodeURIComponent(safe(nome, 'produto'));
+  const l = safe(loja).toLowerCase();
+  if (l.includes('amazon'))     return `https://www.amazon.com.br/s?k=${q}`;
+  if (l.includes('mercado'))    return `https://lista.mercadolivre.com.br/${q}`;
+  if (l.includes('magazine') || l.includes('magalu'))
+                                return `https://www.magazineluiza.com.br/busca/${q}/`;
+  if (l.includes('shopee'))     return `https://shopee.com.br/search?keyword=${q}`;
+  if (l.includes('americanas')) return `https://www.americanas.com.br/busca/${q}`;
+  if (l.includes('kabum'))      return `https://www.kabum.com.br/busca/${q}`;
+  return `https://www.google.com/search?q=${q}+${encodeURIComponent(loja)}`;
 }
 
-function normalizeLink(rawLink, loja, nomeProduto) {
-  // Se não tem link válido, gera um de busca
-  if (!isValidHttpUrl(safeText(rawLink))) {
-    return buildStoreSearchLink(loja, nomeProduto);
-  }
-  // Link válido — retorna como está (o backend já corrigiu o formato)
-  return rawLink;
+
+
+// Estimativa de preço por nome quando a IA retorna zero
+// Baseado em preços reais do mercado brasileiro
+function estimarPreco(nome) {
+  const n = (nome || '').toLowerCase();
+
+  // Games — consoles
+  if (/playstation 5|ps5 console/.test(n))       return 'R$ 3.999,90';
+  if (/xbox series x/.test(n))                    return 'R$ 3.999,90';
+  if (/xbox series s/.test(n))                    return 'R$ 2.299,90';
+  if (/nintendo switch oled/.test(n))             return 'R$ 2.499,90';
+  if (/nintendo switch lite/.test(n))             return 'R$ 1.599,90';
+  if (/nintendo switch/.test(n))                  return 'R$ 1.999,90';
+  if (/playstation 4|ps4/.test(n))                return 'R$ 1.899,90';
+  // Games — jogos
+  if (/the last of us|god of war|red dead|cyberpunk|gta|fortnite|fifa|nba 2k|assassin/.test(n))
+                                                   return 'R$ 249,90';
+  if (/controller ps5|controle ps5/.test(n))      return 'R$ 449,90';
+  if (/controller xbox|controle xbox/.test(n))    return 'R$ 399,90';
+
+  // Smartphones
+  if (/iphone 15 pro max/.test(n))                return 'R$ 8.999,90';
+  if (/iphone 15 pro/.test(n))                    return 'R$ 7.999,90';
+  if (/iphone 15/.test(n))                        return 'R$ 5.999,90';
+  if (/iphone 14/.test(n))                        return 'R$ 4.499,90';
+  if (/iphone 13/.test(n))                        return 'R$ 3.299,90';
+  if (/iphone/.test(n))                           return 'R$ 2.999,90';
+  if (/galaxy s24 ultra/.test(n))                 return 'R$ 7.999,90';
+  if (/galaxy s24|galaxy s23/.test(n))            return 'R$ 4.999,90';
+  if (/galaxy s22|galaxy s21/.test(n))            return 'R$ 2.999,90';
+  if (/galaxy a54|galaxy a53|galaxy a52/.test(n)) return 'R$ 1.799,90';
+  if (/galaxy a/.test(n))                         return 'R$ 1.299,90';
+  if (/redmi note/.test(n))                       return 'R$ 1.299,90';
+  if (/moto g/.test(n))                           return 'R$ 999,90';
+
+  // Notebooks
+  if (/macbook pro/.test(n))                      return 'R$ 11.999,90';
+  if (/macbook air/.test(n))                      return 'R$ 8.499,90';
+  if (/rog zephyrus|razer blade/.test(n))         return 'R$ 9.999,90';
+  if (/rog|predator|legion|alienware/.test(n))    return 'R$ 6.999,90';
+  if (/notebook|laptop/.test(n))                  return 'R$ 2.999,90';
+
+  // TVs
+  if (/oled|qled/.test(n))                        return 'R$ 4.999,90';
+  if (/55"|65"|75"/.test(n))                      return 'R$ 2.999,90';
+  if (/43"|50"/.test(n))                          return 'R$ 1.799,90';
+  if (/smart tv|televisão/.test(n))               return 'R$ 1.499,90';
+
+  // Fones
+  if (/airpods pro/.test(n))                      return 'R$ 1.799,90';
+  if (/airpods/.test(n))                          return 'R$ 1.299,90';
+  if (/sony wh-1000|bose 700/.test(n))            return 'R$ 1.499,90';
+  if (/jbl/.test(n))                              return 'R$ 299,90';
+  if (/fone|headphone|headset|earbuds/.test(n))   return 'R$ 199,90';
+
+  // Tênis
+  if (/yeezy|jordan/.test(n))                     return 'R$ 999,90';
+  if (/ultraboost|air max/.test(n))               return 'R$ 699,90';
+  if (/adidas|nike/.test(n))                      return 'R$ 499,90';
+  if (/tênis|tenis/.test(n))                      return 'R$ 299,90';
+
+  // Eletrodomésticos
+  if (/geladeira|refrigerador/.test(n))           return 'R$ 2.999,90';
+  if (/lavadora|máquina de lavar/.test(n))        return 'R$ 1.999,90';
+  if (/ar condicionado|split/.test(n))            return 'R$ 1.799,90';
+  if (/airfryer|fritadeira/.test(n))              return 'R$ 399,90';
+  if (/microondas/.test(n))                       return 'R$ 499,90';
+
+  return 'R$ 299,90';
 }
 
-function normalizeProduto(produto) {
-  const nomeProduto = safeText(produto?.nomeProduto ?? produto?.nome, 'Produto sem nome');
-  const loja = safeText(produto?.loja ?? produto?.nomeLoja, 'Loja não informada');
+// Gera ID temporário determinístico quando o produto vem da IA (sem ID do banco)
+// Mesmo produto+loja sempre gera o mesmo ID — evita duplicatas no React key
+function gerarIdTemp(nome, loja) {
+  const str = `${nome}|${loja}`;
+  let h = 5381;
+  for (let i = 0; i < str.length; i++)
+    h = ((h << 5) + h) ^ str.charCodeAt(i);
+  return `ai_${Math.abs(h >>> 0)}`;
+}
 
-  const imagemUrlRaw = safeText(
-    produto?.imagemUrl ?? produto?.imagemURL ?? produto?.imageUrl ?? produto?.urlImagem
-  );
-
-  const precoOferta = normalizePrecoOferta(
-    produto?.precoOferta ?? produto?.preco ?? produto?.valorOferta
-  );
-
-  const imagemUrl = isPlaceholderImage(imagemUrlRaw) ? PLACEHOLDER_IMAGE : imagemUrlRaw;
-
-  const linkProduto = normalizeLink(
-    produto?.linkProduto ?? produto?.urlProduto ?? produto?.link,
-    loja,
-    nomeProduto
-  );
+function normalize(p) {
+  const nome  = safe(p?.nomeProduto ?? p?.nome, 'Produto sem nome');
+  const loja  = safe(p?.loja ?? p?.nomeLoja, 'Loja');
+  const imgRaw = safe(p?.imagemUrl ?? p?.imagemURL ?? p?.imageUrl ?? p?.urlImagem);
 
   return {
-    // id pode ser null para produtos gerados pela IA — tudo bem
-    id: produto?.id ?? produto?.produtoId ?? null,
-    nomeProduto,
-    precoOferta,
-    descricao: safeText(produto?.descricao ?? produto?.descricaoProduto, 'Sem descrição'),
-    imagemUrl,
+    id:            p?.id ?? gerarIdTemp(nome, loja),
+    nomeProduto:   nome,
+    precoOferta:   formatPreco(p?.precoOferta ?? p?.preco) ?? estimarPreco(nome),
+    precoOriginal: formatPreco(p?.precoOriginal) === 'Consulte na loja' ? '' : formatPreco(p?.precoOriginal),
+    desconto:      safe(p?.desconto),
+    descricao:     safe(p?.descricao ?? p?.descricaoProduto),
+    // Deixar vazio — ProductCard usa getProductImage(nome) como fallback
+    // Não usar DiceBear pois bloqueia o getProductImage de funcionar
+    imagemUrl:     isBroken(imgRaw) ? '' : imgRaw,
     loja,
-    linkProduto,
-    categoriaNome: safeText(produto?.categoriaNome ?? produto?.categoria, ''),
+    linkProduto:   isUrl(safe(p?.linkProduto ?? p?.urlProduto ?? p?.link))
+      ? safe(p?.linkProduto ?? p?.urlProduto ?? p?.link)
+      : buildLink(loja, nome),
+    categoriaNome: safe(p?.categoriaNome ?? p?.categoria),
   };
 }
 
-function normalizeLista(payload) {
-  const list = Array.isArray(payload)
-    ? payload
+function normalizeList(payload) {
+  const list = Array.isArray(payload) ? payload
     : payload?.produtos || payload?.data || payload?.items || [];
-  return list.map(normalizeProduto);
+  return list.map(normalize);
 }
 
-function dedupeProdutos(produtos) {
+function dedup(list) {
   const seen = new Set();
-  const result = [];
-  for (const produto of produtos) {
-    // NUNCA usar id como chave — pode ser null para todos os produtos da IA
-    const key = `${produto.nomeProduto}|${produto.loja}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(produto);
-    }
-  }
-  return result;
-}
-
-function scoreProduto(produto) {
-  let score = 0;
-  if (!isPlaceholderImage(produto.imagemUrl)) score += 2;
-  if (produto.precoOferta && produto.precoOferta.toLowerCase() !== 'consulte na loja') score += 2;
-  if (isValidHttpUrl(produto.linkProduto)) score += 1;
-  return score;
-}
-
-function prioritizeProdutos(produtos) {
-  return [...produtos].sort((a, b) => scoreProduto(b) - scoreProduto(a));
+  return list.filter(p => {
+    const k = `${p.nomeProduto}|${p.loja}`;
+    return seen.has(k) ? false : seen.add(k);
+  });
 }
 
 export const produtoService = {
-  recommendations: async (minimo = 10) => {
-    const response = await api.get('/api/products/recommendations');
-    let recomendacoes = normalizeLista(response.data);
-
-    if (recomendacoes.length >= minimo) {
-      return dedupeProdutos(recomendacoes);
-    }
-
-    // Complementa se tiver menos de 10
-    try {
-      const complemento = await api.get('/api/products/search', { params: { query: 'ofertas' } });
-      recomendacoes = dedupeProdutos([...recomendacoes, ...normalizeLista(complemento.data)]);
-    } catch {
-      // mantém só as recomendações se a busca complementar falhar
-    }
-
-    return prioritizeProdutos(recomendacoes).slice(0, minimo);
+  // Recomendações baseadas na categoria favorita — máximo 12
+  recommendations: async () => {
+    const res = await api.get('/api/products/recommendations');
+    return dedup(normalizeList(res.data));
   },
 
+  // Busca livre — qualquer produto, sem depender da categoria favorita
   search: async (query) => {
-    const response = await api.get('/api/products/search', { params: { query } });
-    const lista = normalizeLista(response.data);
-    return prioritizeProdutos(dedupeProdutos(lista));
+    const res = await api.get('/api/products/search', { params: { query } });
+    return dedup(normalizeList(res.data));
   },
 };

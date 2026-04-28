@@ -66,7 +66,11 @@ export default function AtualizarPerfil() {
 
       updateUser({ nome: response.nome, email: response.email });
       setSucesso('Perfil atualizado com sucesso!');
-      setTimeout(() => navigate('/perfil'), 1500);
+      // Sinaliza para a Home que a categoria mudou — força novo fetch das recomendações
+      window.dispatchEvent(new CustomEvent('categoria-atualizada', {
+        detail: { categoriaId: parseInt(categoriaId) }
+      }));
+      setTimeout(() => navigate('/home'), 1500);
     } catch (err) {
       console.error('Erro ao atualizar perfil:', err);
       if (err.response?.status === 403) {
