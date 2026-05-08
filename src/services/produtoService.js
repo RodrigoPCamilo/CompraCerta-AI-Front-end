@@ -1,6 +1,5 @@
 import api from './api';
-
-const PLACEHOLDER = 'https://api.dicebear.com/9.x/shapes/svg?seed=';
+import { getProductImage } from '../utils/Getproductimage';
 
 function safe(v, fb = '') {
   if (v == null) return fb;
@@ -23,23 +22,21 @@ function isBroken(url) {
 function formatPreco(raw) {
   const t = safe(raw);
   if (!t) return 'Consulte na loja';
-
-  // Rejeita qualquer valor zero ou placeholder
-  const zeros = ['0', '0,00', '0.00', 'r$ 0,00', 'r$ 0', 'r$0,00', 'null', 'undefined'];
-  if (zeros.includes(t.toLowerCase().trim())) return 'Consulte na loja';
-
+  const invalidos = ['0', '0,00', '0.00', 'r$ 0,00', 'r$ 0', 'r$0,00', 'null', 'undefined'];
+  if (invalidos.includes(t.toLowerCase().trim())) return 'Consulte na loja';
   if (t.startsWith('R$') || t.startsWith('r$')) {
     const num = parseFloat(t.replace(/[^0-9.,]/g, '').replace(',', '.'));
     if (isNaN(num) || num <= 0) return 'Consulte na loja';
     return t;
   }
-
   const n = parseFloat(t.replace(/[^0-9.,]/g, '').replace(',', '.'));
   if (!isNaN(n) && n > 0)
     return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-  return null; // será substituído por estimarPreco
+  return null;
 }
+
+// ─── Links de busca por loja ──────────────────────────────────────────────────
+const TODAS_LOJAS = ['Amazon', 'Mercado Livre', 'Magazine Luiza', 'Shopee', 'Americanas', 'Kabum'];
 
 function buildLink(loja, nome) {
   const q = encodeURIComponent(safe(nome, 'produto'));
@@ -54,80 +51,169 @@ function buildLink(loja, nome) {
   return `https://www.google.com/search?q=${q}+${encodeURIComponent(loja)}`;
 }
 
+// ─── Compatibilidade loja × produto (allowlist) ───────────────────────────────
+const LOJAS_RESTRITAS = {
+  kabum: [
+    'iphone', 'galaxy', 'smartphone', 'celular', 'tablet', 'ipad', 'xiaomi', 'moto ',
+    'notebook', 'laptop', 'macbook', 'desktop', 'computador', 'pc gamer',
+    'processador', 'placa mae', 'placa mãe', 'memoria ram', 'memória ram',
+    'ssd', 'hd externo', 'fonte atx', 'gabinete', 'cooler',
+    'rtx', 'gtx', 'rx 6', 'rx 7', 'placa de video', 'placa de vídeo', 'gpu',
+    'monitor', 'teclado', 'mouse gamer', 'mousepad', 'webcam', 'cadeira gamer',
+    'headset', 'fone gamer', 'headphone gamer',
+    'camera', 'câmera', 'gopro', 'smart tv', 'televisao', 'televisão', 'tv ',
+    'playstation', 'ps5', 'ps4', 'xbox', 'nintendo', 'controle gamer',
+    'jogo ps', 'jogo xbox', 'jogo nintendo', 'game ',
+    'smartwatch', 'apple watch', 'galaxy watch',
+    'roteador', 'cabo hdmi', 'cabo usb', 'pen drive', 'carregador',
+    'nobreak', 'impressora', 'projetor',
+  ],
+};
 
+function lojaProvavelmenteTemProduto(loja, nomeProduto, descricao = '') {
+  const l = loja.toLowerCase();
+  const texto = (nomeProduto + ' ' + descricao).toLowerCase();
+  for (const [lojaKey, termosPermitidos] of Object.entries(LOJAS_RESTRITAS)) {
+    if (l.includes(lojaKey)) {
+      const compativel = termosPermitidos.some(t => texto.includes(t));
+      if (!compativel) return false;
+    }
+  }
+  return true;
+}
 
-// Estimativa de preço por nome quando a IA retorna zero
-// Baseado em preços reais do mercado brasileiro
+// ─── Filtra e completa cards com lojas válidas ────────────────────────────────
+async function filtrarECompletar(produtos, limite = 12) {
+  if (!produtos.length) return produtos;
+
+  const validos   = [];
+  const suspeitos = [];
+
+  for (const p of produtos) {
+    if (!lojaProvavelmenteTemProduto(p.loja, p.nomeProduto, p.descricao)) {
+      suspeitos.push(p);
+    } else {
+      validos.push(p);
+    }
+  }
+
+  const lojasJaUsadas = new Set(
+    validos.map(p => `${norm(p.nomeProduto)}|${norm(p.loja)}`)
+  );
+
+  const extras = [];
+
+  for (const prod of suspeitos) {
+    const candidatas = TODAS_LOJAS.filter(loja => {
+      const chave = `${norm(prod.nomeProduto)}|${norm(loja)}`;
+      return !lojasJaUsadas.has(chave) &&
+             lojaProvavelmenteTemProduto(loja, prod.nomeProduto, prod.descricao);
+    });
+
+    if (candidatas.length > 0) {
+      const lojaAlternativa = candidatas[0];
+      const chave = `${norm(prod.nomeProduto)}|${norm(lojaAlternativa)}`;
+      lojasJaUsadas.add(chave);
+      extras.push({
+        ...prod,
+        loja: lojaAlternativa,
+        linkProduto: buildLink(lojaAlternativa, prod.nomeProduto),
+      });
+    }
+  }
+
+  const resultado = dedup([...validos, ...extras]).slice(0, limite);
+
+  if (resultado.length < limite && validos.length > 0) {
+    const produtosBase = validos.slice(0, 3);
+    for (const prod of produtosBase) {
+      for (const loja of TODAS_LOJAS) {
+        if (resultado.length >= limite) break;
+        const chave = `${norm(prod.nomeProduto)}|${norm(loja)}`;
+        if (lojasJaUsadas.has(chave)) continue;
+        if (!lojaProvavelmenteTemProduto(loja, prod.nomeProduto, prod.descricao)) continue;
+        lojasJaUsadas.add(chave);
+        resultado.push({
+          ...prod,
+          id: `fill_${norm(prod.nomeProduto)}_${norm(loja)}`,
+          loja,
+          linkProduto: buildLink(loja, prod.nomeProduto),
+        });
+      }
+      if (resultado.length >= limite) break;
+    }
+  }
+
+  return resultado.slice(0, limite);
+}
+
+function norm(s) {
+  return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+// ─── Estimativa de preço ──────────────────────────────────────────────────────
 function estimarPreco(nome) {
   const n = (nome || '').toLowerCase();
-
-  // Games — consoles
-  if (/playstation 5|ps5 console/.test(n))       return 'R$ 3.999,90';
-  if (/xbox series x/.test(n))                    return 'R$ 3.999,90';
-  if (/xbox series s/.test(n))                    return 'R$ 2.299,90';
-  if (/nintendo switch oled/.test(n))             return 'R$ 2.499,90';
-  if (/nintendo switch lite/.test(n))             return 'R$ 1.599,90';
-  if (/nintendo switch/.test(n))                  return 'R$ 1.999,90';
-  if (/playstation 4|ps4/.test(n))                return 'R$ 1.899,90';
-  // Games — jogos
-  if (/the last of us|god of war|red dead|cyberpunk|gta|fortnite|fifa|nba 2k|assassin/.test(n))
-                                                   return 'R$ 249,90';
-  if (/controller ps5|controle ps5/.test(n))      return 'R$ 449,90';
-  if (/controller xbox|controle xbox/.test(n))    return 'R$ 399,90';
-
-  // Smartphones
-  if (/iphone 15 pro max/.test(n))                return 'R$ 8.999,90';
-  if (/iphone 15 pro/.test(n))                    return 'R$ 7.999,90';
-  if (/iphone 15/.test(n))                        return 'R$ 5.999,90';
-  if (/iphone 14/.test(n))                        return 'R$ 4.499,90';
-  if (/iphone 13/.test(n))                        return 'R$ 3.299,90';
-  if (/iphone/.test(n))                           return 'R$ 2.999,90';
-  if (/galaxy s24 ultra/.test(n))                 return 'R$ 7.999,90';
-  if (/galaxy s24|galaxy s23/.test(n))            return 'R$ 4.999,90';
-  if (/galaxy s22|galaxy s21/.test(n))            return 'R$ 2.999,90';
-  if (/galaxy a54|galaxy a53|galaxy a52/.test(n)) return 'R$ 1.799,90';
-  if (/galaxy a/.test(n))                         return 'R$ 1.299,90';
-  if (/redmi note/.test(n))                       return 'R$ 1.299,90';
-  if (/moto g/.test(n))                           return 'R$ 999,90';
-
-  // Notebooks
-  if (/macbook pro/.test(n))                      return 'R$ 11.999,90';
-  if (/macbook air/.test(n))                      return 'R$ 8.499,90';
-  if (/rog zephyrus|razer blade/.test(n))         return 'R$ 9.999,90';
-  if (/rog|predator|legion|alienware/.test(n))    return 'R$ 6.999,90';
-  if (/notebook|laptop/.test(n))                  return 'R$ 2.999,90';
-
-  // TVs
-  if (/oled|qled/.test(n))                        return 'R$ 4.999,90';
-  if (/55"|65"|75"/.test(n))                      return 'R$ 2.999,90';
-  if (/43"|50"/.test(n))                          return 'R$ 1.799,90';
-  if (/smart tv|televisão/.test(n))               return 'R$ 1.499,90';
-
-  // Fones
-  if (/airpods pro/.test(n))                      return 'R$ 1.799,90';
-  if (/airpods/.test(n))                          return 'R$ 1.299,90';
-  if (/sony wh-1000|bose 700/.test(n))            return 'R$ 1.499,90';
-  if (/jbl/.test(n))                              return 'R$ 299,90';
-  if (/fone|headphone|headset|earbuds/.test(n))   return 'R$ 199,90';
-
-  // Tênis
-  if (/yeezy|jordan/.test(n))                     return 'R$ 999,90';
-  if (/ultraboost|air max/.test(n))               return 'R$ 699,90';
-  if (/adidas|nike/.test(n))                      return 'R$ 499,90';
-  if (/tênis|tenis/.test(n))                      return 'R$ 299,90';
-
-  // Eletrodomésticos
-  if (/geladeira|refrigerador/.test(n))           return 'R$ 2.999,90';
-  if (/lavadora|máquina de lavar/.test(n))        return 'R$ 1.999,90';
-  if (/ar condicionado|split/.test(n))            return 'R$ 1.799,90';
-  if (/airfryer|fritadeira/.test(n))              return 'R$ 399,90';
-  if (/microondas/.test(n))                       return 'R$ 499,90';
-
+  if (/playstation 5|ps5\b/.test(n))    return 'R$ 3.699,90';
+  if (/xbox series x/.test(n))          return 'R$ 3.999,90';
+  if (/xbox series s/.test(n))          return 'R$ 2.199,90';
+  if (/nintendo switch oled/.test(n))   return 'R$ 2.499,90';
+  if (/nintendo switch lite/.test(n))   return 'R$ 1.599,90';
+  if (/nintendo switch/.test(n))        return 'R$ 1.999,90';
+  if (/iphone 15 pro max/.test(n))      return 'R$ 8.499,90';
+  if (/iphone 15 pro/.test(n))          return 'R$ 7.299,90';
+  if (/iphone 15/.test(n))              return 'R$ 5.499,90';
+  if (/iphone 14/.test(n))              return 'R$ 4.299,90';
+  if (/iphone/.test(n))                 return 'R$ 2.999,90';
+  if (/galaxy s24 ultra/.test(n))       return 'R$ 8.299,90';
+  if (/galaxy s24/.test(n))             return 'R$ 4.499,90';
+  if (/galaxy a/.test(n))               return 'R$ 1.299,90';
+  if (/redmi note/.test(n))             return 'R$ 1.299,90';
+  if (/moto g/.test(n))                 return 'R$ 999,90';
+  if (/macbook pro m3/.test(n))         return 'R$ 14.999,90';
+  if (/macbook air m3/.test(n))         return 'R$ 9.499,90';
+  if (/macbook air m2/.test(n))         return 'R$ 7.999,90';
+  if (/macbook pro/.test(n))            return 'R$ 11.999,90';
+  if (/macbook air/.test(n))            return 'R$ 8.499,90';
+  if (/notebook gamer/.test(n))         return 'R$ 5.999,90';
+  if (/notebook|laptop/.test(n))        return 'R$ 2.999,90';
+  if (/airpods pro/.test(n))            return 'R$ 1.799,90';
+  if (/airpods max/.test(n))            return 'R$ 4.299,90';
+  if (/airpods/.test(n))                return 'R$ 1.199,90';
+  if (/sony wh-1000xm5/.test(n))        return 'R$ 1.599,90';
+  if (/jbl flip/.test(n))               return 'R$ 699,90';
+  if (/jbl/.test(n))                    return 'R$ 399,90';
+  if (/apple watch ultra/.test(n))      return 'R$ 6.499,90';
+  if (/apple watch se/.test(n))         return 'R$ 2.499,90';
+  if (/apple watch/.test(n))            return 'R$ 3.499,90';
+  if (/galaxy watch/.test(n))           return 'R$ 1.799,90';
+  if (/garmin/.test(n))                 return 'R$ 2.499,90';
+  if (/amazfit/.test(n))                return 'R$ 499,90';
+  if (/smartwatch/.test(n))             return 'R$ 499,90';
+  if (/oled|qled/.test(n))              return 'R$ 3.999,90';
+  if (/smart tv/.test(n))               return 'R$ 1.499,90';
+  if (/adidas ultraboost/.test(n))      return 'R$ 699,90';
+  if (/nike air max|air force 1/.test(n)) return 'R$ 699,90';
+  if (/air jordan/.test(n))             return 'R$ 1.199,90';
+  if (/yeezy/.test(n))                  return 'R$ 1.299,90';
+  if (/adidas|nike/.test(n))            return 'R$ 499,90';
+  if (/tênis|tenis/.test(n))            return 'R$ 299,90';
+  if (/whey protein/.test(n))           return 'R$ 99,90';
+  if (/creatina/.test(n))               return 'R$ 59,90';
+  if (/kettlebell/.test(n))             return 'R$ 149,90';
+  if (/halter/.test(n))                 return 'R$ 89,90';
+  if (/esteira/.test(n))                return 'R$ 1.499,90';
+  if (/geladeira|refrigerador/.test(n)) return 'R$ 2.999,90';
+  if (/lavadora|máquina de lavar/.test(n)) return 'R$ 1.999,90';
+  if (/airfryer|fritadeira/.test(n))    return 'R$ 399,90';
+  if (/microondas/.test(n))             return 'R$ 499,90';
+  if (/perfume/.test(n))                return 'R$ 199,90';
+  if (/livro|mangá/.test(n))            return 'R$ 49,90';
+  if (/camiseta|camisa|vestido/.test(n)) return 'R$ 89,90';
+  if (/jaqueta|moletom/.test(n))        return 'R$ 199,90';
   return 'R$ 299,90';
 }
 
-// Gera ID temporário determinístico quando o produto vem da IA (sem ID do banco)
-// Mesmo produto+loja sempre gera o mesmo ID — evita duplicatas no React key
 function gerarIdTemp(nome, loja) {
   const str = `${nome}|${loja}`;
   let h = 5381;
@@ -139,17 +225,17 @@ function gerarIdTemp(nome, loja) {
 function normalize(p) {
   const nome  = safe(p?.nomeProduto ?? p?.nome, 'Produto sem nome');
   const loja  = safe(p?.loja ?? p?.nomeLoja, 'Loja');
+  const desc  = safe(p?.descricao ?? p?.descricaoProduto);
   const imgRaw = safe(p?.imagemUrl ?? p?.imagemURL ?? p?.imageUrl ?? p?.urlImagem);
 
   return {
     id:            p?.id ?? gerarIdTemp(nome, loja),
     nomeProduto:   nome,
     precoOferta:   formatPreco(p?.precoOferta ?? p?.preco) ?? estimarPreco(nome),
-    precoOriginal: formatPreco(p?.precoOriginal) === 'Consulte na loja' ? '' : formatPreco(p?.precoOriginal),
+    precoOriginal: formatPreco(p?.precoOriginal) === 'Consulte na loja'
+      ? '' : formatPreco(p?.precoOriginal),
     desconto:      safe(p?.desconto),
-    descricao:     safe(p?.descricao ?? p?.descricaoProduto),
-    // Deixar vazio — ProductCard usa getProductImage(nome) como fallback
-    // Não usar DiceBear pois bloqueia o getProductImage de funcionar
+    descricao:     desc,
     imagemUrl:     isBroken(imgRaw) ? '' : imgRaw,
     loja,
     linkProduto:   isUrl(safe(p?.linkProduto ?? p?.urlProduto ?? p?.link))
@@ -168,21 +254,21 @@ function normalizeList(payload) {
 function dedup(list) {
   const seen = new Set();
   return list.filter(p => {
-    const k = `${p.nomeProduto}|${p.loja}`;
+    const k = `${norm(p.nomeProduto)}|${norm(p.loja)}`;
     return seen.has(k) ? false : seen.add(k);
   });
 }
 
 export const produtoService = {
-  // Recomendações baseadas na categoria favorita — máximo 12
   recommendations: async () => {
     const res = await api.get('/api/products/recommendations');
-    return dedup(normalizeList(res.data));
+    const produtos = dedup(normalizeList(res.data));
+    return filtrarECompletar(produtos, 12);
   },
 
-  // Busca livre — qualquer produto, sem depender da categoria favorita
   search: async (query) => {
     const res = await api.get('/api/products/search', { params: { query } });
-    return dedup(normalizeList(res.data));
+    const produtos = dedup(normalizeList(res.data));
+    return filtrarECompletar(produtos, 12);
   },
 };

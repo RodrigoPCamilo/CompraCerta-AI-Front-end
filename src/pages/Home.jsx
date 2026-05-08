@@ -61,6 +61,7 @@ export default function Home() {
     try {
       setLoading(true);
       setErro('');
+      setProdutos([]);
       const data = await produtoService.recommendations();
       setProdutos(data);
     } catch (err) {
@@ -110,14 +111,17 @@ export default function Home() {
     carregarRecomendacoes();
   };
 
-  if (loading) {
-    return (
-      <>
-        <Header />
-        <Loading message={buscando ? 'Buscando ofertas...' : 'Carregando recomendações...'} />
-      </>
-    );
-  }
+  const SkeletonCard = () => (
+    <div className="product-card" style={{ overflow: 'hidden' }}>
+      <div style={{ height: '200px', background: 'linear-gradient(90deg,#1e1e2e 25%,#2a2a3e 50%,#1e1e2e 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', borderRadius: '8px 8px 0 0' }} />
+      <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ height: '14px', width: '70%', background: '#2a2a3e', borderRadius: '4px', animation: 'shimmer 1.4s infinite', backgroundSize: '200% 100%' }} />
+        <div style={{ height: '12px', width: '90%', background: '#2a2a3e', borderRadius: '4px', animation: 'shimmer 1.4s infinite', backgroundSize: '200% 100%' }} />
+        <div style={{ height: '20px', width: '40%', background: '#2a2a3e', borderRadius: '4px', marginTop: '8px', animation: 'shimmer 1.4s infinite', backgroundSize: '200% 100%' }} />
+      </div>
+      <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+    </div>
+  );
 
   return (
     <>
@@ -187,7 +191,11 @@ export default function Home() {
             </div>
           </div>
 
-          {produtos.length === 0 ? (
+          {loading ? (
+            <div className="products-grid">
+              {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
+            </div>
+          ) : produtos.length === 0 ? (
             <EmptyState message="Nenhum produto encontrado" icon="🛍️" />
           ) : (
             <div className="products-grid">

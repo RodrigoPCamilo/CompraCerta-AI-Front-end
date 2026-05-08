@@ -1,5 +1,5 @@
 import './ProductCard.css';
-import { getProductImage } from '../Utils/Getproductimage';
+import { getProductImage } from '../utils/Getproductimage';
 
 function isUrl(url) {
   try { const p = new URL(url); return p.protocol === 'http:' || p.protocol === 'https:'; }
@@ -15,13 +15,13 @@ function isBroken(url) {
 }
 
 const STORE_COLORS = {
-  amazon:          { bg: '#ff9900', text: '#111' },
-  'mercado livre': { bg: '#ffe600', text: '#111' },
-  'magazine luiza':{ bg: '#0086ff', text: '#fff' },
-  magalu:          { bg: '#0086ff', text: '#fff' },
-  shopee:          { bg: '#ee4d2d', text: '#fff' },
-  americanas:      { bg: '#cc0022', text: '#fff' },
-  kabum:           { bg: '#ff6a00', text: '#fff' },
+  amazon:           { bg: '#ff9900', text: '#111' },
+  'mercado livre':  { bg: '#ffe600', text: '#111' },
+  'magazine luiza': { bg: '#0086ff', text: '#fff' },
+  magalu:           { bg: '#0086ff', text: '#fff' },
+  shopee:           { bg: '#ee4d2d', text: '#fff' },
+  americanas:       { bg: '#cc0022', text: '#fff' },
+  kabum:            { bg: '#ff6a00', text: '#fff' },
 };
 
 function storeColor(loja) {
@@ -33,14 +33,15 @@ function storeColor(loja) {
 }
 
 function calcDesc(oferta, original) {
-  const parse = s => parseFloat(String(s || '').replace(/[R$\s.]/g,'').replace(',','.')) || 0;
+  const parse = s => parseFloat(String(s || '').replace(/[R$\s.]/g, '').replace(',', '.')) || 0;
   const o = parse(oferta), g = parse(original);
-  if (g > o && o > 0) { const p = Math.round((1 - o/g)*100); return p > 1 ? p : null; }
+  if (g > o && o > 0) { const p = Math.round((1 - o / g) * 100); return p > 1 ? p : null; }
   return null;
 }
 
 export function ProductCard({ produto }) {
   const nome     = produto?.nomeProduto || 'Produto';
+  const desc     = produto?.descricao   || '';
   const hasLink  = isUrl(produto?.linkProduto || '');
   const cor      = storeColor(produto?.loja);
   const desconto = calcDesc(produto?.precoOferta, produto?.precoOriginal)
@@ -50,10 +51,8 @@ export function ProductCard({ produto }) {
     produto.precoOriginal !== 'R$ 0,00' &&
     produto.precoOriginal !== 'Consulte na loja';
 
-  // Imagem: usa URL do back-end se for válida, senão gera pela biblioteca
-  // Sempre usa getProductImage — a IA não fornece URLs de imagem válidas
-  // getProductImage retorna foto do Unsplash correta para a categoria do produto
-  const imgSrc = getProductImage(nome);
+  // Passa descrição junto ao nome → melhor detecção de categoria para a imagem
+  const imgSrc = getProductImage(nome, desc);
 
   return (
     <article className="product-card">
@@ -66,7 +65,7 @@ export function ProductCard({ produto }) {
           onLoad={(e) => e.currentTarget.classList.add('loaded')}
           onError={(e) => {
             e.currentTarget.classList.add('loaded');
-            e.currentTarget.src = getProductImage(nome + '_b');
+            e.currentTarget.src = getProductImage(nome + '_b', desc);
           }}
         />
 
@@ -89,8 +88,8 @@ export function ProductCard({ produto }) {
 
         <h3 className="product-name">{nome}</h3>
 
-        {produto?.descricao && produto.descricao !== 'Sem descrição' && (
-          <p className="product-description">{produto.descricao}</p>
+        {desc && desc !== 'Sem descrição' && (
+          <p className="product-description">{desc}</p>
         )}
 
         <div className="product-footer">
@@ -101,7 +100,6 @@ export function ProductCard({ produto }) {
             <p className="product-price">
               {produto?.precoOferta || 'Consulte na loja'}
             </p>
-            {/* Aviso de estimativa — preço gerado pela IA pode diferir do real */}
             <span className="product-price-disclaimer">Estimativa · confira na loja</span>
           </div>
 
